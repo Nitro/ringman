@@ -27,7 +27,8 @@ func Test_Run(t *testing.T) {
 
 		Convey("sets 'started' to true", func() {
 			go ringMgr.Run()
-			ringMgr.cmdChan <-RingCommand{}
+			ringMgr.Wait()
+
 			So(ringMgr.started, ShouldBeTrue)
 			ringMgr.Stop()
 		})
@@ -41,6 +42,18 @@ func Test_Run(t *testing.T) {
 
 func Test_Commands(t *testing.T) {
 	Convey("Running commands", t, func() {
+		Convey("AddNode adds a node which is returned from GetNode", func() {
+			ringMgr := NewHashRingManager([]string{"kjartan"})
+			go ringMgr.Run()
+
+			ringMgr.Wait()
+			err := ringMgr.AddNode("njal")
+			So(err, ShouldBeNil)
+
+			node, err := ringMgr.GetNode("foo")
+			So(err, ShouldBeNil)
+			So(node, ShouldEqual, "njal")
+		})
 
 		Convey("With error conditions", func() {
 			Convey("does not blow up on nil receiver", func() {

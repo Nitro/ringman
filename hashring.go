@@ -21,6 +21,7 @@ type HashRingManager struct {
 	HashRing *hashring.HashRing
 	cmdChan  chan RingCommand
 	started  bool
+	waitChan chan struct{}
 }
 
 type RingCommand struct {
@@ -39,6 +40,7 @@ func NewHashRingManager(nodeList []string) *HashRingManager {
 	return &HashRingManager{
 		HashRing: hashring.New(nodeList),
 		cmdChan:  make(chan RingCommand),
+		waitChan: make(chan struct{}),
 	}
 }
 
@@ -51,13 +53,17 @@ func (r *HashRingManager) Run() error {
 	}
 
 	r.started = true
+	close(r.waitChan)
+	r.waitChan = nil
 
 	// The cmdChan is used to synchronize all the access to the HashRing
 	for msg := range r.cmdChan {
 		switch msg.Command {
 		case CmdAddNode:
+			log.Debugf("Adding node %s", msg.NodeName)
 			r.HashRing = r.HashRing.AddNode(msg.NodeName)
 		case CmdRemoveNode:
+			log.Debugf("Removing node %s", msg.NodeName)
 			r.HashRing = r.HashRing.RemoveNode(msg.NodeName)
 		case CmdGetNode:
 			node, ok := r.HashRing.GetNode(msg.Key)
@@ -72,6 +78,12 @@ func (r *HashRingManager) Run() error {
 	}
 
 	return nil
+}
+
+// Wait for the HashRingManager to be running. Used to synchronize with a
+// goroutine running in the background.
+func (r *HashRingManager) Wait() {
+	<-r.waitChan
 }
 
 // Stop the HashRingManager from running. This is currently permanent since
