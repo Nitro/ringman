@@ -13,6 +13,18 @@ on events from Memberlist.
 In addition, the package provides some HTTP handlers and a Mux that can be
 mounted anywhere in your application if you want to expose the hashring.
 
+If you just want to get information from the ring you can query it in your code
+directly like:
+
+```
+ring, err := ringman.NewDefaultMemberlistRing([]string{127.0.0.1})
+if err != nil {
+    log.Fatalf("Unble to establish memberlist ring: %s", err)
+}
+
+println(ring.Manager.GetNode("mykey"))
+```
+
 The following would set up a Memberlist-backed consistent hash ring and serve
 the node information over HTTP:
 
@@ -70,14 +82,3 @@ Which returns output like:
 }
 ```
 
-If you just want to get information from the ring you can query it in your code
-directly like:
-
-```
-ring, err := ringman.NewDefaultMemberlistRing([]string{127.0.0.1})
-if err != nil {
-    log.Fatalf("Unble to establish memberlist ring: %s", err)
-}
-
-println(ring.Manager.GetNode("mykey"))
-```
