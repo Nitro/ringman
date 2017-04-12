@@ -69,3 +69,15 @@ Which returns output like:
   "Key": "somekey"
 }
 ```
+
+If you just want to get information from the ring you can query it in your code
+directly like:
+
+```
+ring, err := ringman.NewDefaultMemberlistRing([]string{127.0.0.1})
+if err != nil {
+    log.Fatalf("Unble to establish memberlist ring: %s", err)
+}
+
+println(ring.Manager.GetNode("mykey"))
+```
