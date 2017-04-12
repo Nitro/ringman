@@ -111,7 +111,7 @@ func (r *MemberlistRing) HttpGetNodeHandler(w http.ResponseWriter, req *http.Req
 // HttpMux returns an http.ServeMux configured to run the HTTP handlers on the
 // MemberlistRing. You can either use this one, or mount the handlers on a mux of your
 // own choosing (e.g. Gorilla mux or httprouter)
-func (r *MemberlistRing) HttpMux() http.ServeMux {
+func (r *MemberlistRing) HttpMux() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/nodes/get", r.HttpGetNodeHandler)
 	mux.HandleFunc("/nodes", r.HttpListNodesHandler)
