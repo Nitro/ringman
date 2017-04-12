@@ -1,8 +1,8 @@
 Ringman
 =======
 
-This is a consistent hash implementation backed by [our fork of Hashicorp's
-Memberlist library](https://github.com/Nitro/memberlist) and the
+This is a consistent hash ring implementation backed by [our fork of
+Hashicorp's Memberlist library](https://github.com/Nitro/memberlist) and the
 [hashring](https://github.com/serialx/hashring) library.
 
 It sets up an automatic consistent hash ring across multiple nodes. The nodes
