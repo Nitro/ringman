@@ -1,6 +1,8 @@
 package ringman
 
 import (
+	"encoding/json"
+
 	"github.com/Nitro/memberlist"
 	log "github.com/Sirupsen/logrus"
 )
@@ -18,7 +20,18 @@ func NewDelegate(ringMan *HashRingManager) *Delegate {
 }
 
 func (d *Delegate) NodeMeta(limit int) []byte {
-	return []byte{}
+	if d.ringMan.OurMetadata == nil {
+		return []byte("{}")
+	}
+
+	data, err := json.Marshal(d.ringMan.OurMetadata)
+	if err != nil {
+		log.Error("Error encoding Node metadata!")
+		data = []byte("{}")
+	}
+	log.Debugf("Setting metadata to: %s", string(data))
+
+	return data
 }
 
 func (d *Delegate) NotifyMsg(message []byte) {
@@ -42,6 +55,7 @@ func (d *Delegate) MergeRemoteState(buf []byte, join bool) {
 func (d *Delegate) NotifyJoin(node *memberlist.Node) {
 	log.Debugf("NotifyJoin(): %s %s", node.Name, string(node.Meta))
 	d.ringMan.AddNode(node.Name)
+	d.updateMetadata(node)
 }
 
 func (d *Delegate) NotifyLeave(node *memberlist.Node) {
@@ -50,5 +64,21 @@ func (d *Delegate) NotifyLeave(node *memberlist.Node) {
 }
 
 func (d *Delegate) NotifyUpdate(node *memberlist.Node) {
-	log.Debugf("NotifyUpdate(): %s", node.Name)
+	log.Debugf("NotifyUpdate(): %s - %s", node.Name, node.Meta)
+	d.updateMetadata(node)
+}
+
+// updateMetadata decodes the node metadata and tells the ring manager
+// about the update. This usually comes from a node joining the cluster
+// or sending an update message (NotifyJoin or NotifyUpdate).
+func (d *Delegate) updateMetadata(node *memberlist.Node) {
+	var meta RingMetadata
+
+	err := json.Unmarshal(node.Meta, &meta)
+	if err != nil {
+		log.Errorf("Unable to decode node metadata: %s", err)
+		return
+	}
+
+	d.ringMan.UpdateMetadata(node.Name, &meta)
 }

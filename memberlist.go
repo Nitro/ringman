@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/Nitro/memberlist"
 )
@@ -17,15 +18,15 @@ type MemberlistRing struct {
 // DefaultLANConfig from the memberlist documentation. clusterSeeds must be 0 or
 // more hosts to seed the cluster with. Note that the ring will be _running_
 // when returned from this method.
-func NewDefaultMemberlistRing(clusterSeeds []string) (*MemberlistRing, error) {
-	return NewMemberlistRing(memberlist.DefaultLANConfig(), clusterSeeds)
+func NewDefaultMemberlistRing(clusterSeeds []string, metadata *RingMetadata) (*MemberlistRing, error) {
+	return NewMemberlistRing(memberlist.DefaultLANConfig(), clusterSeeds, metadata)
 }
 
 // NewMemberlistRing configures a MemberlistRing according to the Memberlist
 // configuration specified. clusterSeeds must be 0 or more hosts to seed the
 // cluster with. Note that the ring will be _running_  when returned from this
 // method.
-func NewMemberlistRing(mlConfig *memberlist.Config, clusterSeeds []string) (*MemberlistRing, error) {
+func NewMemberlistRing(mlConfig *memberlist.Config, clusterSeeds []string, metadata *RingMetadata) (*MemberlistRing, error) {
 
 	if clusterSeeds == nil {
 		clusterSeeds = []string{}
@@ -46,11 +47,21 @@ func NewMemberlistRing(mlConfig *memberlist.Config, clusterSeeds []string) (*Mem
 	}
 
 	ringMgr := NewHashRingManager(nodesToStrings(list.Members()))
+	ringMgr.OurMetadata = metadata
+
 	delegate := NewDelegate(ringMgr)
 	mlConfig.Delegate = delegate
 	mlConfig.Events = delegate
 
 	go ringMgr.Run()
+
+	// Send our metadata to the cluster (3 sec timeout)
+	go func() {
+		list.UpdateNode(3 * time.Second)
+	}()
+
+	// Wait for the ring to be ready before proceeding
+	ringMgr.Wait()
 
 	return &MemberlistRing{
 		Memberlist: list,
@@ -95,10 +106,10 @@ func (r *MemberlistRing) HttpGetNodeHandler(w http.ResponseWriter, req *http.Req
 
 	node, _ := r.Manager.GetNode(key)
 
-	respObj := struct{
+	respObj := struct {
 		Node string
-		Key string
-	}{ node, key }
+		Key  string
+	}{node.NodeName + ":" + node.Metadata.Port, key}
 
 	jsonBytes, err := json.MarshalIndent(respObj, "", "  ")
 	if err != nil {
