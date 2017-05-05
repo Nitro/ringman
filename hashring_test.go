@@ -53,7 +53,7 @@ func Test_Commands(t *testing.T) {
 
 			node, err := ringMgr.GetNode("foo")
 			So(err, ShouldBeNil)
-			So(node.NodeName, ShouldEqual, "njal")
+			So(node, ShouldEqual, "njal")
 		})
 
 		Convey("RemoveNode removes a node", func() {
@@ -61,14 +61,7 @@ func Test_Commands(t *testing.T) {
 
 			node, err := ringMgr.GetNode("foo")
 			So(err, ShouldNotBeNil)
-			So(node.Metadata, ShouldEqual, nil)
-			So(node.NodeName, ShouldEqual, "")
-		})
-
-		Convey("UpdateMetadata updates the internal map", func() {
-			ringMgr.UpdateMetadataSync("kjartan", &RingMetadata{Port: "1234"})
-
-			So(ringMgr.Metadata["kjartan"].Port, ShouldEqual, "1234")
+			So(node, ShouldEqual, "")
 		})
 
 		Convey("With error conditions", func() {

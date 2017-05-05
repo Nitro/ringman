@@ -15,7 +15,6 @@ const (
 	CmdAddNode        = iota
 	CmdRemoveNode     = iota
 	CmdGetNode        = iota
-	CmdUpdateMetadata = iota
 )
 
 const (
@@ -24,42 +23,30 @@ const (
 
 type HashRingManager struct {
 	HashRing    *hashring.HashRing
-	Metadata    map[string]*RingMetadata
-	OurMetadata *RingMetadata // Metadata for this host
 	cmdChan     chan RingCommand
 	started     bool
 	waitChan    chan struct{}
-}
-
-type RingMetadata struct {
-	Port string
-}
-
-type RingNode struct {
-	NodeName string
-	Metadata *RingMetadata
 }
 
 type RingCommand struct {
 	Command   int
 	NodeName  string
 	Key       string
-	Metadata  *RingMetadata
 	ReplyChan chan *RingReply
 }
 
 type RingReply struct {
 	Error error
-	Nodes []*RingNode
+	Nodes []string
 }
 
-// NewHashRingManager returns a properly configured HashRingManager
+// NewHashRingManager returns a properly configured HashRingManager. It accepts
+// zero or mode nodes to initialize the ring with.
 func NewHashRingManager(nodeList []string) *HashRingManager {
 	return &HashRingManager{
 		HashRing: hashring.New(nodeList),
 		cmdChan:  make(chan RingCommand, CommandChannelLength),
 		waitChan: make(chan struct{}),
-		Metadata: make(map[string]*RingMetadata),
 	}
 }
 
@@ -78,7 +65,6 @@ func (r *HashRingManager) Run() error {
 	r.waitChan = nil
 
 	// The cmdChan is used to synchronize all the access to the HashRing
-	// and the Metadata map
 	for msg := range r.cmdChan {
 		switch msg.Command {
 		case CmdAddNode:
@@ -89,11 +75,6 @@ func (r *HashRingManager) Run() error {
 			log.Debugf("Removing node %s", msg.NodeName)
 			r.HashRing = r.HashRing.RemoveNode(msg.NodeName)
 
-			// Also clean up any metadata for this node
-			if _, ok := r.Metadata[msg.NodeName]; ok {
-				delete(r.Metadata, msg.NodeName)
-			}
-
 		case CmdGetNode:
 			node, ok := r.HashRing.GetNode(msg.Key)
 			var err error
@@ -103,19 +84,7 @@ func (r *HashRingManager) Run() error {
 
 			msg.ReplyChan <- &RingReply{
 				Error: err,
-				Nodes: []*RingNode{
-					{
-						NodeName: node,
-						Metadata: r.Metadata[node],
-					},
-				},
-			}
-
-		case CmdUpdateMetadata:
-			r.Metadata[msg.NodeName] = msg.Metadata
-			// Optionally it could be a synchronous call
-			if msg.ReplyChan != nil {
-				msg.ReplyChan <- nil
+				Nodes: []string{node},
 			}
 
 		default:
@@ -167,7 +136,7 @@ func (r *HashRingManager) wrapCommand(fn func() error) error {
 // channel for the HashManager.
 func (r *HashRingManager) AddNode(nodeName string) error {
 	err := r.wrapCommand(func() error {
-		r.cmdChan <- RingCommand{CmdAddNode, nodeName, "", nil, nil}
+		r.cmdChan <- RingCommand{CmdAddNode, nodeName, "", nil}
 		return nil
 	})
 
@@ -182,7 +151,7 @@ func (r *HashRingManager) AddNode(nodeName string) error {
 // channel for the HashManager.
 func (r *HashRingManager) RemoveNode(nodeName string) error {
 	err := r.wrapCommand(func() error {
-		r.cmdChan <- RingCommand{CmdRemoveNode, nodeName, "", nil, nil}
+		r.cmdChan <- RingCommand{CmdRemoveNode, nodeName, "", nil}
 		return nil
 	})
 
@@ -194,15 +163,15 @@ func (r *HashRingManager) RemoveNode(nodeName string) error {
 }
 
 // GetNode requests a node from the ring to serve the provided key
-func (r *HashRingManager) GetNode(key string) (*RingNode, error) {
+func (r *HashRingManager) GetNode(key string) (string, error) {
 	replyChan := make(chan *RingReply)
 	err := r.wrapCommand(func() error {
-		r.cmdChan <- RingCommand{CmdGetNode, "", key, nil, replyChan}
+		r.cmdChan <- RingCommand{CmdGetNode, "", key, replyChan}
 		return nil
 	})
 
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	reply := <-replyChan
@@ -210,39 +179,4 @@ func (r *HashRingManager) GetNode(key string) (*RingNode, error) {
 	replyChan = nil
 
 	return reply.Nodes[0], reply.Error
-}
-
-// UpdateMetadata replaces the metadata stored for this node
-func (r *HashRingManager) UpdateMetadata(nodeName string, data *RingMetadata) error {
-	err := r.wrapCommand(func() error {
-		r.cmdChan <- RingCommand{CmdUpdateMetadata, nodeName, "", data, nil}
-		return nil
-	})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// UpdateMetadataSync is the synchronous version of UpdateMetadata, it will
-// block until the metadata was updated
-func (r *HashRingManager) UpdateMetadataSync(nodeName string, data *RingMetadata) error {
-	replyChan := make(chan *RingReply)
-
-	err := r.wrapCommand(func() error {
-		r.cmdChan <- RingCommand{CmdUpdateMetadata, nodeName, "", data, replyChan}
-		return nil
-	})
-
-	if err != nil {
-		return err
-	}
-
-	<-replyChan
-	close(replyChan)
-	replyChan = nil
-
-	return nil
 }

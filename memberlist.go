@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/Nitro/memberlist"
 )
@@ -18,16 +17,20 @@ type MemberlistRing struct {
 // DefaultLANConfig from the memberlist documentation. clusterSeeds must be 0 or
 // more hosts to seed the cluster with. Note that the ring will be _running_
 // when returned from this method.
-func NewDefaultMemberlistRing(clusterSeeds []string, metadata *RingMetadata) (*MemberlistRing, error) {
-	return NewMemberlistRing(memberlist.DefaultLANConfig(), clusterSeeds, metadata)
+func NewDefaultMemberlistRing(clusterSeeds []string, port string) (*MemberlistRing, error) {
+	return NewMemberlistRing(memberlist.DefaultLANConfig(), clusterSeeds, port)
 }
 
 // NewMemberlistRing configures a MemberlistRing according to the Memberlist
 // configuration specified. clusterSeeds must be 0 or more hosts to seed the
 // cluster with. Note that the ring will be _running_  when returned from this
 // method.
-func NewMemberlistRing(mlConfig *memberlist.Config, clusterSeeds []string, metadata *RingMetadata) (*MemberlistRing, error) {
-
+//
+// * mlConfig is a memberlist config struct
+// * clusterSeeds are the hostnames of the machines we'll bootstrap from
+// * port is our own service port that the service (not memberist) will use
+//
+func NewMemberlistRing(mlConfig *memberlist.Config, clusterSeeds []string, port string) (*MemberlistRing, error) {
 	if clusterSeeds == nil {
 		clusterSeeds = []string{}
 	}
@@ -36,9 +39,28 @@ func NewMemberlistRing(mlConfig *memberlist.Config, clusterSeeds []string, metad
 		mlConfig.LogOutput = &LoggingBridge{}
 	}
 
+	// We need to set up the delegate first, so we join the ring with
+	// meta-data (otherwise our service port gets skipped over). We'll give
+	// it a real ring manager a few lines down.
+	delegate := NewDelegate(nil, &NodeMetadata{ServicePort: port})
+	mlConfig.Delegate = delegate
+	mlConfig.Events = delegate
+
 	list, err := memberlist.Create(mlConfig)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to create Memberlist cluster: %s", err)
+	}
+
+	ringMgr := NewHashRingManager([]string{})
+	go ringMgr.Run()
+	// Wait for the ring to be ready before proceeding
+	ringMgr.Wait()
+	delegate.RingMan = ringMgr
+
+	// Make sure we have all the nodes added, using the callback in
+	// the delegate, which does the right thing.
+	for _, node := range list.Members() {
+		delegate.NotifyJoin(node)
 	}
 
 	_, err = list.Join(clusterSeeds)
@@ -46,35 +68,10 @@ func NewMemberlistRing(mlConfig *memberlist.Config, clusterSeeds []string, metad
 		return nil, fmt.Errorf("Unable to join Memberlist cluster: %s", err)
 	}
 
-	ringMgr := NewHashRingManager(nodesToStrings(list.Members()))
-	ringMgr.OurMetadata = metadata
-
-	delegate := NewDelegate(ringMgr)
-	mlConfig.Delegate = delegate
-	mlConfig.Events = delegate
-
-	go ringMgr.Run()
-
-	// Send our metadata to the cluster (3 sec timeout)
-	go func() {
-		list.UpdateNode(3 * time.Second)
-	}()
-
-	// Wait for the ring to be ready before proceeding
-	ringMgr.Wait()
-
 	return &MemberlistRing{
 		Memberlist: list,
 		Manager:    ringMgr,
 	}, nil
-}
-
-func nodesToStrings(list []*memberlist.Node) []string {
-	var names []string
-	for _, node := range list {
-		names = append(names, node.Name)
-	}
-	return names
 }
 
 // HttpListNodesHandler is an http.Handler that will return a JSON-encoded list of
@@ -109,7 +106,7 @@ func (r *MemberlistRing) HttpGetNodeHandler(w http.ResponseWriter, req *http.Req
 	respObj := struct {
 		Node string
 		Key  string
-	}{node.NodeName + ":" + node.Metadata.Port, key}
+	}{node, key}
 
 	jsonBytes, err := json.MarshalIndent(respObj, "", "  ")
 	if err != nil {

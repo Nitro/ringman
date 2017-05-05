@@ -7,24 +7,26 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-type Delegate struct {
-	ringMan *HashRingManager
+type NodeMetadata struct {
+	ServicePort string
 }
 
-func NewDelegate(ringMan *HashRingManager) *Delegate {
+type Delegate struct {
+	RingMan      *HashRingManager
+	nodeMetadata *NodeMetadata
+}
+
+func NewDelegate(ringMan *HashRingManager, meta *NodeMetadata) *Delegate {
 	delegate := Delegate{
-		ringMan: ringMan,
+		RingMan:      ringMan,
+		nodeMetadata: meta,
 	}
 
 	return &delegate
 }
 
 func (d *Delegate) NodeMeta(limit int) []byte {
-	if d.ringMan.OurMetadata == nil {
-		return []byte("{}")
-	}
-
-	data, err := json.Marshal(d.ringMan.OurMetadata)
+	data, err := json.Marshal(d.nodeMetadata)
 	if err != nil {
 		log.Error("Error encoding Node metadata!")
 		data = []byte("{}")
@@ -44,7 +46,7 @@ func (d *Delegate) GetBroadcasts(overhead, limit int) [][]byte {
 }
 
 func (d *Delegate) LocalState(join bool) []byte {
-	log.Debugf("LocalState(): %b", join)
+	log.Debugf("LocalState(): %t", join)
 	return []byte{}
 }
 
@@ -54,31 +56,41 @@ func (d *Delegate) MergeRemoteState(buf []byte, join bool) {
 
 func (d *Delegate) NotifyJoin(node *memberlist.Node) {
 	log.Debugf("NotifyJoin(): %s %s", node.Name, string(node.Meta))
-	d.ringMan.AddNode(node.Name)
-	d.updateMetadata(node)
+
+	if d.RingMan == nil {
+		log.Warn("Ring manager was nil in delegate!")
+		return
+	}
+
+	meta, err := DecodeNodeMetadata(node.Meta)
+	if err != nil {
+		log.Errorf("Unable to decode metadata for %s", node.Name)
+		d.RingMan.AddNode(node.Name)
+		return
+	}
+	d.RingMan.AddNode(node.Name + ":" + meta.ServicePort)
 }
 
 func (d *Delegate) NotifyLeave(node *memberlist.Node) {
 	log.Debugf("NotifyLeave(): %s", node.Name)
-	d.ringMan.RemoveNode(node.Name)
+	if d.RingMan == nil {
+		log.Error("Ring manager was nil in delegate!")
+		return
+	}
+	d.RingMan.RemoveNode(node.Name)
 }
 
 func (d *Delegate) NotifyUpdate(node *memberlist.Node) {
 	log.Debugf("NotifyUpdate(): %s - %s", node.Name, node.Meta)
-	d.updateMetadata(node)
 }
 
-// updateMetadata decodes the node metadata and tells the ring manager
-// about the update. This usually comes from a node joining the cluster
-// or sending an update message (NotifyJoin or NotifyUpdate).
-func (d *Delegate) updateMetadata(node *memberlist.Node) {
-	var meta RingMetadata
-
-	err := json.Unmarshal(node.Meta, &meta)
+// DecodeNodeMetadata takes a byte slice and deserializes it
+func DecodeNodeMetadata(data []byte) (*NodeMetadata, error) {
+	var meta NodeMetadata
+	err := json.Unmarshal(data, &meta)
 	if err != nil {
-		log.Errorf("Unable to decode node metadata: %s", err)
-		return
+		return nil, err
 	}
 
-	d.ringMan.UpdateMetadata(node.Name, &meta)
+	return &meta, nil
 }
