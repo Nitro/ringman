@@ -101,6 +101,11 @@ func (r *MemberlistRing) HttpGetNodeHandler(w http.ResponseWriter, req *http.Req
 		return
 	}
 
+	if r == nil {
+		http.Error(w, `{"status": "error", "message": "MemberlistRing was nil"}`, 500)
+		return
+	}
+
 	node, _ := r.Manager.GetNode(key)
 
 	respObj := struct {
