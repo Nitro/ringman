@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Nitro/memberlist"
+	"github.com/hashicorp/memberlist"
 )
 
 type MemberlistRing struct {

@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/Nitro/memberlist"
+	"github.com/hashicorp/memberlist"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

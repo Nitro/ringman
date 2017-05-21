@@ -3,7 +3,7 @@ package ringman
 import (
 	"encoding/json"
 
-	"github.com/Nitro/memberlist"
+	"github.com/hashicorp/memberlist"
 	log "github.com/Sirupsen/logrus"
 )
 
