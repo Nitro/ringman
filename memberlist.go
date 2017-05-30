@@ -18,7 +18,7 @@ type MemberlistRing struct {
 // more hosts to seed the cluster with. Note that the ring will be _running_
 // when returned from this method.
 func NewDefaultMemberlistRing(clusterSeeds []string, port string) (*MemberlistRing, error) {
-	return NewMemberlistRing(memberlist.DefaultLANConfig(), clusterSeeds, port)
+	return NewMemberlistRing(memberlist.DefaultLANConfig(), clusterSeeds, port, "default")
 }
 
 // NewMemberlistRing configures a MemberlistRing according to the Memberlist
@@ -30,7 +30,9 @@ func NewDefaultMemberlistRing(clusterSeeds []string, port string) (*MemberlistRi
 // * clusterSeeds are the hostnames of the machines we'll bootstrap from
 // * port is our own service port that the service (not memberist) will use
 //
-func NewMemberlistRing(mlConfig *memberlist.Config, clusterSeeds []string, port string) (*MemberlistRing, error) {
+func NewMemberlistRing(mlConfig *memberlist.Config, clusterSeeds []string, port string,
+	clusterName string) (*MemberlistRing, error) {
+
 	if clusterSeeds == nil {
 		clusterSeeds = []string{}
 	}
@@ -38,6 +40,8 @@ func NewMemberlistRing(mlConfig *memberlist.Config, clusterSeeds []string, port 
 	if mlConfig.LogOutput == nil {
 		mlConfig.LogOutput = &LoggingBridge{}
 	}
+
+	mlConfig.ClusterName = clusterName
 
 	// We need to set up the delegate first, so we join the ring with
 	// meta-data (otherwise our service port gets skipped over). We'll give
