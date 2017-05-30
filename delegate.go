@@ -2,9 +2,10 @@ package ringman
 
 import (
 	"encoding/json"
+	"errors"
 
-	"github.com/hashicorp/memberlist"
 	log "github.com/Sirupsen/logrus"
+	"github.com/hashicorp/memberlist"
 )
 
 type NodeMetadata struct {
@@ -62,13 +63,24 @@ func (d *Delegate) NotifyJoin(node *memberlist.Node) {
 		return
 	}
 
-	meta, err := DecodeNodeMetadata(node.Meta)
+	nodeKey, err := d.keyForNode(node)
 	if err != nil {
-		log.Errorf("Unable to decode metadata for %s", node.Name)
-		d.RingMan.AddNode(node.Addr.String())
+		log.Errorf("NotifyJoin: %s", err)
 		return
 	}
-	d.RingMan.AddNode(node.Addr.String() + ":" + meta.ServicePort)
+
+	d.RingMan.AddNode(nodeKey)
+}
+
+// keyForNode takes a node and returns the key we use to store it in the
+// hashring. Currently based on the IP address and service port.
+func (d *Delegate) keyForNode(node *memberlist.Node) (string, error) {
+	meta, err := DecodeNodeMetadata(node.Meta)
+	if err != nil {
+		return "", errors.New("Unable to decode metadata for " + node.Name + ", unable to add")
+	}
+
+	return node.Addr.String() + ":" + meta.ServicePort, nil
 }
 
 func (d *Delegate) NotifyLeave(node *memberlist.Node) {
@@ -77,7 +89,14 @@ func (d *Delegate) NotifyLeave(node *memberlist.Node) {
 		log.Error("Ring manager was nil in delegate!")
 		return
 	}
-	d.RingMan.RemoveNode(node.Name)
+
+	nodeKey, err := d.keyForNode(node)
+	if err != nil {
+		log.Errorf("NotifyJoin: %s", err)
+		return
+	}
+
+	d.RingMan.RemoveNode(nodeKey)
 }
 
 func (d *Delegate) NotifyUpdate(node *memberlist.Node) {
