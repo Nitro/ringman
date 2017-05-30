@@ -65,10 +65,10 @@ func (d *Delegate) NotifyJoin(node *memberlist.Node) {
 	meta, err := DecodeNodeMetadata(node.Meta)
 	if err != nil {
 		log.Errorf("Unable to decode metadata for %s", node.Name)
-		d.RingMan.AddNode(node.Name)
+		d.RingMan.AddNode(node.Addr.String())
 		return
 	}
-	d.RingMan.AddNode(node.Name + ":" + meta.ServicePort)
+	d.RingMan.AddNode(node.Addr.String() + ":" + meta.ServicePort)
 }
 
 func (d *Delegate) NotifyLeave(node *memberlist.Node) {

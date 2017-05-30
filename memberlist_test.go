@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/memberlist"
@@ -19,8 +18,7 @@ func Test_NewMemberlistRing(t *testing.T) {
 	mlistRing, err := NewMemberlistRing(mlConfig, []string{}, "8000")
 
 	Convey("NewMemberlistRing()", t, func() {
-		hostname, _ := os.Hostname()
-
+		ourAddr := mlistRing.Memberlist.LocalNode().Addr.String()
 		So(err, ShouldBeNil)
 
 		Convey("returns a properly configured MemberlistRing", func() {
@@ -29,7 +27,7 @@ func Test_NewMemberlistRing(t *testing.T) {
 
 			node, err := mlistRing.Manager.GetNode("beowulf")
 			So(err, ShouldBeNil)
-			So(node, ShouldEqual, hostname+":8000")
+			So(node, ShouldEqual, ourAddr+":8000")
 
 			So(len(mlistRing.Memberlist.Members()), ShouldEqual, 1)
 		})
