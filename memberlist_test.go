@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/hashicorp/memberlist"
+	"github.com/Nitro/memberlist"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
