@@ -2,6 +2,7 @@ package ringman
 
 import (
 	"errors"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/serialx/hashring"
@@ -12,20 +13,22 @@ var (
 )
 
 const (
-	CmdAddNode        = iota
-	CmdRemoveNode     = iota
-	CmdGetNode        = iota
+	CmdAddNode    = iota
+	CmdRemoveNode = iota
+	CmdGetNode    = iota
+	CmdPing       = iota
 )
 
 const (
-	CommandChannelLength = 10 // How big a buffer on our mailbox channel?
+	CommandChannelLength = 10                   // How big a buffer on our mailbox channel?
+	PingTimeout          = 5 * time.Millisecond // This should be PLENTY of spare time
 )
 
 type HashRingManager struct {
-	HashRing    *hashring.HashRing
-	cmdChan     chan RingCommand
-	started     bool
-	waitChan    chan struct{}
+	HashRing *hashring.HashRing
+	cmdChan  chan RingCommand
+	started  bool
+	waitChan chan struct{}
 }
 
 type RingCommand struct {
@@ -86,6 +89,9 @@ func (r *HashRingManager) Run() error {
 				Error: err,
 				Nodes: []string{node},
 			}
+
+		case CmdPing:
+			msg.ReplyChan <- &RingReply{}
 
 		default:
 			log.Errorf("Received unexpected command %d", msg.Command)
@@ -179,4 +185,17 @@ func (r *HashRingManager) GetNode(key string) (string, error) {
 	replyChan = nil
 
 	return reply.Nodes[0], reply.Error
+}
+
+// Ping is a simple ping through the main processing loop with a timeout to make
+// sure this thing is running the background goroutine.
+func (r *HashRingManager) Ping() bool {
+	replyChan := make(chan *RingReply)
+	select {
+	case r.cmdChan <- RingCommand{CmdPing, "", "", replyChan}:
+		<-replyChan
+		return true
+	case <-time.After(PingTimeout):
+		return false
+	}
 }
