@@ -3,6 +3,7 @@ package ringman
 import (
 	"testing"
 
+	director "github.com/relistan/go-director"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -21,18 +22,15 @@ func Test_NewHashRingManager(t *testing.T) {
 func Test_Run(t *testing.T) {
 	Convey("Run()", t, func() {
 		hostList := []string{"njal", "kjartan"}
+		ringMgr := NewHashRingManager(hostList)
+		go ringMgr.Run(director.NewFreeLooper(director.FOREVER, make(chan error)))
 
 		Convey("ringMgr.Ping() returns true when running", func() {
-			ringMgr := NewHashRingManager(hostList)
-			go ringMgr.Run()
 
 			So(ringMgr.Ping(), ShouldBeTrue)
 		})
 
 		Convey("ringMgr can stop", func() {
-			ringMgr := NewHashRingManager(hostList)
-			go ringMgr.Run()
-
 			So(ringMgr.Ping(), ShouldBeTrue)
 
 			ringMgr.Stop()
@@ -43,7 +41,7 @@ func Test_Run(t *testing.T) {
 
 		Convey("doesn't blow up on a nil receiver", func() {
 			var broken *HashRingManager
-			So(func() { broken.Run() }, ShouldNotPanic)
+			So(func() { broken.Run(nil) }, ShouldNotPanic)
 		})
 	})
 }
@@ -51,7 +49,7 @@ func Test_Run(t *testing.T) {
 func Test_Commands(t *testing.T) {
 	Convey("Running commands", t, func() {
 		ringMgr := NewHashRingManager([]string{"kjartan"})
-		go ringMgr.Run()
+		go ringMgr.Run(director.NewFreeLooper(director.FOREVER, make(chan error)))
 		// Make sure the RingManager is started
 		So(ringMgr.Ping(), ShouldBeTrue)
 
@@ -81,9 +79,8 @@ func Test_Commands(t *testing.T) {
 
 		Convey("Ping fails when the manager is not running", func() {
 			ringMgr.Stop()
-			result := ringMgr.Ping()
 
-			So(result, ShouldBeFalse)
+			So(ringMgr.Ping(), ShouldBeFalse)
 		})
 
 		Convey("With error conditions", func() {

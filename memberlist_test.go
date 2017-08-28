@@ -15,12 +15,12 @@ func Test_NewMemberlistRing(t *testing.T) {
 	// start the list up each time
 	mlConfig := memberlist.DefaultLANConfig()
 	mlConfig.BindPort = 35001
-	mlistRing, err := NewMemberlistRing(mlConfig, []string{}, "8000", "default")
 
 	Convey("NewMemberlistRing()", t, func() {
-		ourAddr := mlistRing.Memberlist.LocalNode().Addr.String()
+		mlistRing, err := NewMemberlistRing(mlConfig, []string{}, "8000", "default")
 		So(err, ShouldBeNil)
 
+		ourAddr := mlistRing.Memberlist.LocalNode().Addr.String()
 		Convey("returns a properly configured MemberlistRing", func() {
 			So(mlistRing.Memberlist, ShouldNotBeNil)
 			So(mlistRing.Manager, ShouldNotBeNil)
@@ -31,6 +31,18 @@ func Test_NewMemberlistRing(t *testing.T) {
 
 			So(len(mlistRing.Memberlist.Members()), ShouldEqual, 1)
 		})
+	})
+}
+
+func Test_MemberListRingShutdown(t *testing.T) {
+	Convey("NewMemberlistRing()", t, func() {
+		mlistRing, err := NewDefaultMemberlistRing([]string{}, "8000")
+		So(err, ShouldBeNil)
+
+		mlistRing.Shutdown()
+
+		So(mlistRing.Manager.Ping(), ShouldBeFalse)
+		So(mlistRing.Manager.cmdChan, ShouldBeNil)
 	})
 }
 

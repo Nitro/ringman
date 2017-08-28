@@ -5,6 +5,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/relistan/go-director"
 	"github.com/serialx/hashring"
 )
 
@@ -53,13 +54,19 @@ func NewHashRingManager(nodeList []string) *HashRingManager {
 // Run runs in a loop over the contents of cmdChan and processes the
 // incoming work. This acts as the synchronization around the HashRing
 // itself which is not mutable and has to be replaced on each command.
-func (r *HashRingManager) Run() error {
+func (r *HashRingManager) Run(looper director.Looper) error {
 	if r == nil {
 		return ErrNilManager
 	}
 
 	// The cmdChan is used to synchronize all the access to the HashRing
-	for msg := range r.cmdChan {
+	looper.Loop(func() error {
+		if r.cmdChan == nil {
+			return errors.New("Command processor was stopped")
+		}
+
+		msg := <-r.cmdChan
+
 		switch msg.Command {
 		case CmdAddNode:
 			log.Debugf("Adding node %s", msg.NodeName)
@@ -87,7 +94,10 @@ func (r *HashRingManager) Run() error {
 		default:
 			log.Errorf("Received unexpected command %d", msg.Command)
 		}
-	}
+
+		return nil
+	})
+
 	log.Warnf("Closed cmdChan")
 
 	return nil
