@@ -64,6 +64,19 @@ func Test_Commands(t *testing.T) {
 			So(node, ShouldEqual, "")
 		})
 
+		Convey("Ping responds as up, in a timely manner", func() {
+			result := ringMgr.Ping()
+
+			So(result, ShouldBeTrue)
+		})
+
+		Convey("Ping fails when the manager is not running", func() {
+			ringMgr.Stop()
+			result := ringMgr.Ping()
+
+			So(result, ShouldBeFalse)
+		})
+
 		Convey("With error conditions", func() {
 			Convey("does not blow up on nil receiver", func() {
 				var broken *HashRingManager
