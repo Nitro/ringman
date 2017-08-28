@@ -59,8 +59,11 @@ func NewMemberlistRing(mlConfig *memberlist.Config, clusterSeeds []string, port 
 
 	ringMgr := NewHashRingManager([]string{})
 	go ringMgr.Run()
-	// Wait for the ring to be ready before proceeding
-	ringMgr.Wait()
+	// Wait for the RingManager to be ready before proceeding
+	if !ringMgr.Ping() {
+		return nil, fmt.Errorf("Unable to initialize the HashRingManager")
+	}
+
 	delegate.RingMan = ringMgr
 
 	// Make sure we have all the nodes added, using the callback in

@@ -14,7 +14,6 @@ func Test_NewHashRingManager(t *testing.T) {
 		Convey("returns a properly configured HashRingManager", func() {
 			So(ringMgr.cmdChan, ShouldNotBeNil)
 			So(ringMgr.HashRing, ShouldNotBeNil)
-			So(ringMgr.started, ShouldBeFalse)
 		})
 	})
 }
@@ -23,14 +22,23 @@ func Test_Run(t *testing.T) {
 	Convey("Run()", t, func() {
 		hostList := []string{"njal", "kjartan"}
 
-		ringMgr := NewHashRingManager(hostList)
-
-		Convey("sets 'started' to true", func() {
+		Convey("ringMgr.Ping() returns true when running", func() {
+			ringMgr := NewHashRingManager(hostList)
 			go ringMgr.Run()
-			ringMgr.Wait()
 
-			So(ringMgr.started, ShouldBeTrue)
+			So(ringMgr.Ping(), ShouldBeTrue)
+		})
+
+		Convey("ringMgr can stop", func() {
+			ringMgr := NewHashRingManager(hostList)
+			go ringMgr.Run()
+
+			So(ringMgr.Ping(), ShouldBeTrue)
+
 			ringMgr.Stop()
+			So(ringMgr.cmdChan, ShouldBeNil)
+
+			So(ringMgr.Ping(), ShouldBeFalse)
 		})
 
 		Convey("doesn't blow up on a nil receiver", func() {
@@ -44,7 +52,8 @@ func Test_Commands(t *testing.T) {
 	Convey("Running commands", t, func() {
 		ringMgr := NewHashRingManager([]string{"kjartan"})
 		go ringMgr.Run()
-		ringMgr.Wait()
+		// Make sure the RingManager is started
+		So(ringMgr.Ping(), ShouldBeTrue)
 
 		Convey("AddNode adds a node which is returned from GetNode", func() {
 
@@ -86,14 +95,7 @@ func Test_Commands(t *testing.T) {
 			})
 
 			Convey("does not try to run if not started", func() {
-				broken := &HashRingManager{started: false}
-				So(func() { broken.AddNode("junk") }, ShouldNotPanic)
-				So(func() { broken.RemoveNode("junk") }, ShouldNotPanic)
-			})
-
-			Convey("does not blow up on nil a closed channel", func() {
-				var broken HashRingManager
-				broken.started = true
+				broken := &HashRingManager{}
 
 				So(func() { broken.AddNode("junk") }, ShouldNotPanic)
 				So(func() { broken.RemoveNode("junk") }, ShouldNotPanic)

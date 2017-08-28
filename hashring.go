@@ -27,8 +27,6 @@ const (
 type HashRingManager struct {
 	HashRing *hashring.HashRing
 	cmdChan  chan RingCommand
-	started  bool
-	waitChan chan struct{}
 }
 
 type RingCommand struct {
@@ -49,7 +47,6 @@ func NewHashRingManager(nodeList []string) *HashRingManager {
 	return &HashRingManager{
 		HashRing: hashring.New(nodeList),
 		cmdChan:  make(chan RingCommand, CommandChannelLength),
-		waitChan: make(chan struct{}),
 	}
 }
 
@@ -60,12 +57,6 @@ func (r *HashRingManager) Run() error {
 	if r == nil {
 		return ErrNilManager
 	}
-
-	r.started = true
-	if r.waitChan != nil {
-		close(r.waitChan)
-	}
-	r.waitChan = nil
 
 	// The cmdChan is used to synchronize all the access to the HashRing
 	for msg := range r.cmdChan {
@@ -107,12 +98,6 @@ func (r *HashRingManager) Pending() int {
 	return len(r.cmdChan)
 }
 
-// Wait for the HashRingManager to be running. Used to synchronize with a
-// goroutine running in the background.
-func (r *HashRingManager) Wait() {
-	<-r.waitChan
-}
-
 // Stop the HashRingManager from running. This is currently permanent since
 // the internal cmdChan it closes can't be re-opened.
 func (r *HashRingManager) Stop() {
@@ -120,16 +105,12 @@ func (r *HashRingManager) Stop() {
 		close(r.cmdChan)
 		r.cmdChan = nil // Prevent issues reading on closed channel
 	}
-	r.started = false
 }
 
 // wrapCommand handles validation of dependencies for the various commands.
 func (r *HashRingManager) wrapCommand(fn func() error) error {
 	if r == nil {
 		return ErrNilManager
-	}
-	if !r.started {
-		return errors.New("HashRingManager has not been started")
 	}
 	if r.cmdChan == nil {
 		return errors.New("HashRingManager has a nil command channel. May not be initialized!")
