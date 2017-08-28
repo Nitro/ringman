@@ -141,31 +141,19 @@ func (r *HashRingManager) wrapCommand(fn func() error) error {
 // AddNode is a blocking call that will send an add message on the message
 // channel for the HashManager.
 func (r *HashRingManager) AddNode(nodeName string) error {
-	err := r.wrapCommand(func() error {
+	return r.wrapCommand(func() error {
 		r.cmdChan <- RingCommand{CmdAddNode, nodeName, "", nil}
 		return nil
 	})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // RemoveNode is a blocking call that will send an add message on the message
 // channel for the HashManager.
 func (r *HashRingManager) RemoveNode(nodeName string) error {
-	err := r.wrapCommand(func() error {
+	return r.wrapCommand(func() error {
 		r.cmdChan <- RingCommand{CmdRemoveNode, nodeName, "", nil}
 		return nil
 	})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // GetNode requests a node from the ring to serve the provided key
