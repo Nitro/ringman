@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/Nitro/memberlist"
+	log "github.com/Sirupsen/logrus"
 )
 
 type NodeMetadata struct {
@@ -92,7 +92,7 @@ func (d *Delegate) NotifyLeave(node *memberlist.Node) {
 
 	nodeKey, err := d.keyForNode(node)
 	if err != nil {
-		log.Errorf("NotifyJoin: %s", err)
+		log.Errorf("NotifyLeave: %s", err)
 		return
 	}
 
