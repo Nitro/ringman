@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/Nitro/memberlist"
+	log "github.com/Sirupsen/logrus"
 )
 
 type MemberlistRing struct {
@@ -57,8 +59,11 @@ func NewMemberlistRing(mlConfig *memberlist.Config, clusterSeeds []string, port 
 
 	ringMgr := NewHashRingManager([]string{})
 	go ringMgr.Run()
-	// Wait for the ring to be ready before proceeding
-	ringMgr.Wait()
+	// Wait for the RingManager to be ready before proceeding
+	if !ringMgr.Ping() {
+		return nil, fmt.Errorf("Unable to initialize the HashRingManager")
+	}
+
 	delegate.RingMan = ringMgr
 
 	// Make sure we have all the nodes added, using the callback in
@@ -133,4 +138,19 @@ func (r *MemberlistRing) HttpMux() *http.ServeMux {
 	mux.HandleFunc("/nodes/get", r.HttpGetNodeHandler)
 	mux.HandleFunc("/nodes", r.HttpListNodesHandler)
 	return mux
+}
+
+// Shutdown shuts down the memberlist node and stops the HashRingManager
+func (r *MemberlistRing) Shutdown() {
+	err := r.Memberlist.Leave(2 * time.Second) // 2 second timeout
+	if err != nil {
+		log.Debugf("Failed to leave Memberlist cluster: %s", err)
+	}
+
+	err = r.Memberlist.Shutdown()
+	if err != nil {
+		log.Debugf("Failed to shutdown Memberlist: %s", err)
+	}
+
+	r.Manager.Stop()
 }
