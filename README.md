@@ -17,7 +17,7 @@ If you just want to get information from the ring you can query it in your code
 directly like:
 
 ```
-ring, err := ringman.NewDefaultMemberlistRing([]string{127.0.0.1})
+ring, err := ringman.NewDefaultMemberlistRing([]string{127.0.0.1}, "8000")
 if err != nil {
     log.Fatalf("Unble to establish memberlist ring: %s", err)
 }
@@ -29,7 +29,7 @@ The following would set up a Memberlist-backed consistent hash ring and serve
 the node information over HTTP:
 
 ```go
-ring, err := ringman.NewDefaultMemberlistRing([]string{127.0.0.1})
+ring, err := ringman.NewDefaultMemberlistRing([]string{127.0.0.1}, "8000")
 if err != nil {
     log.Fatalf("Unble to establish memberlist ring: %s", err)
 }
@@ -74,7 +74,7 @@ $ curl http://docker1:8000/hashring/nodes/get?key=somekey
 ```
 
 Which returns output like:
- 
+
 ```
 {
   "Node": "ubuntu",

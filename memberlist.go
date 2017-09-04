@@ -8,11 +8,13 @@ import (
 
 	"github.com/Nitro/memberlist"
 	log "github.com/Sirupsen/logrus"
+	"github.com/relistan/go-director"
 )
 
 type MemberlistRing struct {
-	Memberlist *memberlist.Memberlist
-	Manager    *HashRingManager
+	Memberlist    *memberlist.Memberlist
+	Manager       *HashRingManager
+	managerLooper director.Looper
 }
 
 // NewDefaultMemberlistRing returns a MemberlistRing configured using the
@@ -58,7 +60,9 @@ func NewMemberlistRing(mlConfig *memberlist.Config, clusterSeeds []string, port 
 	}
 
 	ringMgr := NewHashRingManager([]string{})
-	go ringMgr.Run()
+	looper := director.NewFreeLooper(director.FOREVER, nil)
+	go ringMgr.Run(looper)
+
 	// Wait for the RingManager to be ready before proceeding
 	if !ringMgr.Ping() {
 		return nil, fmt.Errorf("Unable to initialize the HashRingManager")
@@ -78,8 +82,9 @@ func NewMemberlistRing(mlConfig *memberlist.Config, clusterSeeds []string, port 
 	}
 
 	return &MemberlistRing{
-		Memberlist: list,
-		Manager:    ringMgr,
+		Memberlist:    list,
+		Manager:       ringMgr,
+		managerLooper: looper,
 	}, nil
 }
 
@@ -153,4 +158,6 @@ func (r *MemberlistRing) Shutdown() {
 	}
 
 	r.Manager.Stop()
+
+	r.managerLooper.Quit()
 }

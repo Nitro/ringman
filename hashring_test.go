@@ -3,6 +3,7 @@ package ringman
 import (
 	"testing"
 
+	director "github.com/relistan/go-director"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -21,18 +22,15 @@ func Test_NewHashRingManager(t *testing.T) {
 func Test_Run(t *testing.T) {
 	Convey("Run()", t, func() {
 		hostList := []string{"njal", "kjartan"}
+		ringMgr := NewHashRingManager(hostList)
+		go ringMgr.Run(director.NewFreeLooper(director.ONCE, nil))
 
 		Convey("ringMgr.Ping() returns true when running", func() {
-			ringMgr := NewHashRingManager(hostList)
-			go ringMgr.Run()
 
 			So(ringMgr.Ping(), ShouldBeTrue)
 		})
 
 		Convey("ringMgr can stop", func() {
-			ringMgr := NewHashRingManager(hostList)
-			go ringMgr.Run()
-
 			So(ringMgr.Ping(), ShouldBeTrue)
 
 			ringMgr.Stop()
@@ -43,7 +41,7 @@ func Test_Run(t *testing.T) {
 
 		Convey("doesn't blow up on a nil receiver", func() {
 			var broken *HashRingManager
-			So(func() { broken.Run() }, ShouldNotPanic)
+			So(func() { broken.Run(nil) }, ShouldNotPanic)
 		})
 	})
 }
@@ -51,11 +49,11 @@ func Test_Run(t *testing.T) {
 func Test_Commands(t *testing.T) {
 	Convey("Running commands", t, func() {
 		ringMgr := NewHashRingManager([]string{"kjartan"})
-		go ringMgr.Run()
-		// Make sure the RingManager is started
-		So(ringMgr.Ping(), ShouldBeTrue)
 
 		Convey("AddNode adds a node which is returned from GetNode", func() {
+			go ringMgr.Run(director.NewFreeLooper(3, nil))
+			// Make sure the RingManager is started
+			So(ringMgr.Ping(), ShouldBeTrue)
 
 			err := ringMgr.AddNode("njal")
 			So(err, ShouldBeNil)
@@ -66,6 +64,10 @@ func Test_Commands(t *testing.T) {
 		})
 
 		Convey("RemoveNode removes a node", func() {
+			go ringMgr.Run(director.NewFreeLooper(3, nil))
+			// Make sure the RingManager is started
+			So(ringMgr.Ping(), ShouldBeTrue)
+
 			ringMgr.RemoveNode("kjartan")
 
 			node, err := ringMgr.GetNode("foo")
@@ -74,16 +76,21 @@ func Test_Commands(t *testing.T) {
 		})
 
 		Convey("Ping responds as up, in a timely manner", func() {
+			go ringMgr.Run(director.NewFreeLooper(director.ONCE, nil))
+
 			result := ringMgr.Ping()
 
 			So(result, ShouldBeTrue)
 		})
 
 		Convey("Ping fails when the manager is not running", func() {
-			ringMgr.Stop()
-			result := ringMgr.Ping()
+			go ringMgr.Run(director.NewFreeLooper(director.ONCE, nil))
+			// Make sure the RingManager is started
+			So(ringMgr.Ping(), ShouldBeTrue)
 
-			So(result, ShouldBeFalse)
+			ringMgr.Stop()
+
+			So(ringMgr.Ping(), ShouldBeFalse)
 		})
 
 		Convey("With error conditions", func() {
