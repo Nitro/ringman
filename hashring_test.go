@@ -23,7 +23,7 @@ func Test_Run(t *testing.T) {
 	Convey("Run()", t, func() {
 		hostList := []string{"njal", "kjartan"}
 		ringMgr := NewHashRingManager(hostList)
-		go ringMgr.Run(director.NewFreeLooper(director.FOREVER, make(chan error)))
+		go ringMgr.Run(director.NewFreeLooper(director.ONCE, nil))
 
 		Convey("ringMgr.Ping() returns true when running", func() {
 
@@ -49,11 +49,11 @@ func Test_Run(t *testing.T) {
 func Test_Commands(t *testing.T) {
 	Convey("Running commands", t, func() {
 		ringMgr := NewHashRingManager([]string{"kjartan"})
-		go ringMgr.Run(director.NewFreeLooper(director.FOREVER, make(chan error)))
-		// Make sure the RingManager is started
-		So(ringMgr.Ping(), ShouldBeTrue)
 
 		Convey("AddNode adds a node which is returned from GetNode", func() {
+			go ringMgr.Run(director.NewFreeLooper(3, nil))
+			// Make sure the RingManager is started
+			So(ringMgr.Ping(), ShouldBeTrue)
 
 			err := ringMgr.AddNode("njal")
 			So(err, ShouldBeNil)
@@ -64,6 +64,10 @@ func Test_Commands(t *testing.T) {
 		})
 
 		Convey("RemoveNode removes a node", func() {
+			go ringMgr.Run(director.NewFreeLooper(3, nil))
+			// Make sure the RingManager is started
+			So(ringMgr.Ping(), ShouldBeTrue)
+
 			ringMgr.RemoveNode("kjartan")
 
 			node, err := ringMgr.GetNode("foo")
@@ -72,12 +76,18 @@ func Test_Commands(t *testing.T) {
 		})
 
 		Convey("Ping responds as up, in a timely manner", func() {
+			go ringMgr.Run(director.NewFreeLooper(director.ONCE, nil))
+
 			result := ringMgr.Ping()
 
 			So(result, ShouldBeTrue)
 		})
 
 		Convey("Ping fails when the manager is not running", func() {
+			go ringMgr.Run(director.NewFreeLooper(director.ONCE, nil))
+			// Make sure the RingManager is started
+			So(ringMgr.Ping(), ShouldBeTrue)
+
 			ringMgr.Stop()
 
 			So(ringMgr.Ping(), ShouldBeFalse)
