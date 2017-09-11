@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/Nitro/memberlist"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/relistan/go-director"
 )
 

@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/Nitro/memberlist"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 type NodeMetadata struct {
