@@ -98,7 +98,7 @@ func (r *HashRingManager) Run(looper director.Looper) error {
 		return nil
 	})
 
-	log.Warnf("Closed cmdChan")
+	log.Warnf("ringman closed cmdChan")
 
 	return nil
 }
