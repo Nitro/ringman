@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/Nitro/memberlist"
-	log "github.com/sirupsen/logrus"
 	"github.com/relistan/go-director"
+	log "github.com/sirupsen/logrus"
 )
 
 // A MemberlistRing is a ring backed by Hashicorp's Memberlist directly. It

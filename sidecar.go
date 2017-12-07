@@ -26,7 +26,7 @@ const (
 type SidecarRing struct {
 	Manager       *HashRingManager
 	managerLooper director.Looper
-	sidecarUrl   string
+	sidecarUrl    string
 	svcName       string
 	svcPort       int64
 	rcvr          *receiver.Receiver
@@ -45,7 +45,7 @@ func NewSidecarRing(sidecarUrl string, svcName string, svcPort int64) (*SidecarR
 	scRing := &SidecarRing{
 		Manager:       ringMgr,
 		managerLooper: looper,
-		sidecarUrl:   sidecarUrl,
+		sidecarUrl:    sidecarUrl,
 		svcName:       svcName,
 		svcPort:       svcPort,
 	}
@@ -86,14 +86,14 @@ func (r *SidecarRing) onUpdate(state *catalog.ServicesState) {
 	})
 
 	// Was it it in the new group and not in the old one? Add it.
-	for name, _ := range newNodes {
+	for name := range newNodes {
 		if _, ok := r.nodes[name]; !ok {
 			r.Manager.AddNode(name)
 		}
 	}
 
 	// In the old group but not in the new one? Remove it.
-	for name, _ := range r.nodes {
+	for name := range r.nodes {
 		if _, ok := newNodes[name]; !ok {
 			r.Manager.RemoveNode(name)
 		}
