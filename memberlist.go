@@ -11,6 +11,10 @@ import (
 	"github.com/relistan/go-director"
 )
 
+// A MemberlistRing is a ring backed by Hashicorp's Memberlist directly. It
+// exchanges gossip messages directly between instances of this service and
+// requires some open ports for them to communicate with each other. The nodes
+// will need to have some seeds provided that allow them to find each other.
 type MemberlistRing struct {
 	Memberlist    *memberlist.Memberlist
 	Manager       *HashRingManager

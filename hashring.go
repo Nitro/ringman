@@ -2,6 +2,7 @@ package ringman
 
 import (
 	"errors"
+	"net/http"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -40,6 +41,10 @@ type RingCommand struct {
 type RingReply struct {
 	Error error
 	Nodes []string
+}
+
+type RingImplementation interface {
+	HttpMux() *http.ServeMux
 }
 
 // NewHashRingManager returns a properly configured HashRingManager. It accepts
