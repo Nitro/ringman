@@ -26,7 +26,7 @@ const (
 type SidecarRing struct {
 	Manager       *HashRingManager
 	managerLooper director.Looper
-	sidecarAddr   string
+	sidecarUrl   string
 	svcName       string
 	svcPort       int64
 	rcvr          *receiver.Receiver
@@ -35,8 +35,9 @@ type SidecarRing struct {
 
 // NewSidecarRing returns a properly configured SidecarRing that will filter
 // incoming changes by the service name provided and will only watch the
-// ServicePort number passed in.
-func NewSidecarRing(sidecarAddr string, svcName string, svcPort int64) *SidecarRing {
+// ServicePort number passed in. If the SidecarUrl is not empty string, then
+// then we will call that address to get initial state on bootstrap.
+func NewSidecarRing(sidecarUrl string, svcName string, svcPort int64) (*SidecarRing, error) {
 	ringMgr := NewHashRingManager([]string{})
 	looper := director.NewFreeLooper(director.FOREVER, nil)
 	go ringMgr.Run(looper)
@@ -44,7 +45,7 @@ func NewSidecarRing(sidecarAddr string, svcName string, svcPort int64) *SidecarR
 	scRing := &SidecarRing{
 		Manager:       ringMgr,
 		managerLooper: looper,
-		sidecarAddr:   sidecarAddr,
+		sidecarUrl:   sidecarUrl,
 		svcName:       svcName,
 		svcPort:       svcPort,
 	}
@@ -55,9 +56,18 @@ func NewSidecarRing(sidecarAddr string, svcName string, svcPort int64) *SidecarR
 	rcvr.Subscribe(svcName)
 	scRing.rcvr = rcvr
 
+	// If we were given a Sidecar address to bootstrap from, then do it. Otherwie
+	// we just wait for updates.
+	if sidecarUrl != "" {
+		err := rcvr.FetchInitialState(sidecarUrl)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	go rcvr.ProcessUpdates()
 
-	return scRing
+	return scRing, nil
 }
 
 // onUpdate takes care of incoming updates from the receiver

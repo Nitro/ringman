@@ -2,6 +2,7 @@ package ringman
 
 import (
 	"io/ioutil"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
@@ -9,17 +10,38 @@ import (
 	"github.com/Nitro/sidecar/catalog"
 	"github.com/Nitro/sidecar/service"
 	. "github.com/smartystreets/goconvey/convey"
+	"gopkg.in/jarcoal/httpmock.v1"
 )
 
 func Test_NewSidecarRing(t *testing.T) {
 	Convey("NewSidecarRing()", t, func() {
-		ring := NewSidecarRing("127.0.0.1", "some-svc", 9999)
+		ring, _ := NewSidecarRing("", "some-svc", 9999)
 
 		Convey("Returns a properly configured struct", func() {
 			So(ring.Manager, ShouldNotBeNil)
 			So(ring.managerLooper, ShouldNotBeNil)
 			So(ring.svcName, ShouldEqual, "some-svc")
 			So(ring.svcPort, ShouldEqual, 9999)
+		})
+
+		Convey("Calls the bootstrap URL if it's provided", func() {
+			state := catalog.NewServicesState()
+
+			var didFetchState bool
+
+			httpmock.Activate()
+			httpmock.RegisterResponder(
+				"GET", "http://localhost:7777/api/state.json",
+				func(req *http.Request) (*http.Response, error) {
+					didFetchState = true
+					return httpmock.NewStringResponse(200, string(state.Encode())), nil
+				},
+			)
+
+			NewSidecarRing("http://localhost:7777/api/state.json", "some-svc", 9999)
+			So(didFetchState, ShouldBeTrue)
+
+			httpmock.Deactivate()
 		})
 
 		Reset(func() {
@@ -30,7 +52,7 @@ func Test_NewSidecarRing(t *testing.T) {
 
 func Test_HttpMux(t *testing.T) {
 	Convey("HttpMux()", t, func() {
-		ring := NewSidecarRing("127.0.0.1", "some-svc", 9999)
+		ring, _ := NewSidecarRing("", "some-svc", 9999)
 
 		Convey("Returns a valid Mux", func() {
 			So(ring.HttpMux(), ShouldNotBeNil)
@@ -42,7 +64,7 @@ func Test_onUpdate(t *testing.T) {
 	Convey("onUpdate()", t, func() {
 		svcName := "some-svc"
 
-		ring := NewSidecarRing("127.0.0.1", svcName, 9999)
+		ring, _ := NewSidecarRing("", svcName, 9999)
 		state := catalog.NewServicesState()
 
 		svc := service.Service{
@@ -95,7 +117,7 @@ func Test_onUpdate(t *testing.T) {
 
 func Test_SidecarHttpGetNodeHandler(t *testing.T) {
 	Convey("SidecarHttpGetNodeHandler()", t, func() {
-		ring := NewSidecarRing("127.0.0.1:7777", "some-svc", 31337)
+		ring, _ := NewSidecarRing("", "some-svc", 31337)
 
 		req := httptest.NewRequest("GET", "/services/boccacio.json", nil)
 		recorder := httptest.NewRecorder()
