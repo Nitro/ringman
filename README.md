@@ -1,22 +1,26 @@
 Ringman
 =======
 
-This is a consistent hash ring implementation backed by [our fork of
-Hashicorp's Memberlist library](https://github.com/Nitro/memberlist) and the
+This is a consistent hash ring implementation backed by either [our fork of
+Hashicorp's Memberlist library](https://github.com/Nitro/memberlist), or
+[Sidecar service discovery platform](https://github.com/Nitro/sidecar), and the
 [hashring](https://github.com/serialx/hashring) library.
 
 It sets up an automatic consistent hash ring across multiple nodes. The nodes
-are discovered and health validated over Memberlist's implementation of the
-SWIM gossip protocol. It manages adding and removing nodes from the ring based
-on events from Memberlist.
+are discovered and health validated either over Memberlist's implementation of
+the SWIM gossip protocol or via Sidecar. It manages adding and removing nodes
+from the ring based on events from Memberlist or Sidecar.
 
 In addition, the package provides some HTTP handlers and a Mux that can be
 mounted anywhere in your application if you want to expose the hashring.
 
+Memberlist Ring
+---------------
+
 If you just want to get information from the ring you can query it in your code
 directly like:
 
-```
+```go
 ring, err := ringman.NewDefaultMemberlistRing([]string{127.0.0.1}, "8000")
 if err != nil {
     log.Fatalf("Unble to establish memberlist ring: %s", err)
@@ -80,5 +84,22 @@ Which returns output like:
   "Node": "ubuntu",
   "Key": "somekey"
 }
+```
+
+Sidecar Ring
+------------
+
+An alternate implementation backed by New Relic/Nitro's [Sidecar](https://github.com/Nitro/sidecar)
+is available as well. It assumes it will be subscribed to incoming Sidecar events on
+the listener port. See the Sidecar [README](https://github.com/Nitro/sidecar) for how
+to set that up. Once that is established, you can do the following:
+
+```go
+ring, err := ringman.NewSidecarRing("http://localhost:7777/api/state.json")
+if err != nil {
+    log.Fatalf("Unble to establish sidecar ring: %s", err)
+}
+
+println(ring.Manager.GetNode("mykey"))
 ```
 
