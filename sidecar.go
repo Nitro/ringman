@@ -35,7 +35,7 @@ type SidecarRing struct {
 
 // NewSidecarRing returns a properly configured SidecarRing that will filter
 // incoming changes by the service name provided and will only watch the
-// ServicePort number passed in. If the SidecarUrl is not empty string, then
+// ServicePort number passed in. If the SidecarUrl is not empty string,
 // then we will call that address to get initial state on bootstrap.
 func NewSidecarRing(sidecarUrl string, svcName string, svcPort int64) (*SidecarRing, error) {
 	ringMgr := NewHashRingManager([]string{})
