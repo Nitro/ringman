@@ -45,6 +45,7 @@ type RingReply struct {
 
 type RingImplementation interface {
 	HttpMux() *http.ServeMux
+	Shutdown()
 }
 
 // NewHashRingManager returns a properly configured HashRingManager. It accepts
