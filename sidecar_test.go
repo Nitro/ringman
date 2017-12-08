@@ -38,10 +38,28 @@ func Test_NewSidecarRing(t *testing.T) {
 				},
 			)
 
-			NewSidecarRing("http://localhost:7777/api/state.json", "some-svc", 9999)
+			ring, err := NewSidecarRing("http://localhost:7777/api/state.json", "some-svc", 9999)
 			So(didFetchState, ShouldBeTrue)
+			So(ring, ShouldNotBeNil)
+			So(err, ShouldBeNil)
 
-			httpmock.Deactivate()
+			httpmock.DeactivateAndReset()
+		})
+
+		Convey("Returns an error on URL failure", func() {
+			httpmock.Activate()
+			httpmock.RegisterResponder(
+				"GET", "http://localhost:7777/api/state.json",
+				func(req *http.Request) (*http.Response, error) {
+					return httpmock.NewStringResponse(500, "OMG it's broken"), nil
+				},
+			)
+
+			ring, err := NewSidecarRing("http://localhost:7777/api/state.json", "some-svc", 9999)
+			So(ring, ShouldBeNil)
+			So(err, ShouldNotBeNil)
+
+			httpmock.DeactivateAndReset()
 		})
 
 		Reset(func() {
