@@ -12,6 +12,10 @@ type NodeMetadata struct {
 	ServicePort string
 }
 
+// Delegate is a Memberlist delegate that is responsible for handling
+// integration between the hash ring and Memberlist messages. See
+// the Memberlist documentation for detailed explanations of the
+// callback methods.
 type Delegate struct {
 	RingMan      *HashRingManager
 	nodeMetadata *NodeMetadata

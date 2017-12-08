@@ -7,13 +7,17 @@ import (
 	"time"
 
 	"github.com/Nitro/memberlist"
-	log "github.com/sirupsen/logrus"
 	"github.com/relistan/go-director"
+	log "github.com/sirupsen/logrus"
 )
 
+// A MemberlistRing is a ring backed by Hashicorp's Memberlist directly. It
+// exchanges gossip messages directly between instances of this service and
+// requires some open ports for them to communicate with each other. The nodes
+// will need to have some seeds provided that allow them to find each other.
 type MemberlistRing struct {
 	Memberlist    *memberlist.Memberlist
-	Manager       *HashRingManager
+	manager       *HashRingManager
 	managerLooper director.Looper
 }
 
@@ -83,7 +87,7 @@ func NewMemberlistRing(mlConfig *memberlist.Config, clusterSeeds []string, port 
 
 	return &MemberlistRing{
 		Memberlist:    list,
-		Manager:       ringMgr,
+		manager:       ringMgr,
 		managerLooper: looper,
 	}, nil
 }
@@ -120,7 +124,7 @@ func (r *MemberlistRing) HttpGetNodeHandler(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	node, _ := r.Manager.GetNode(key)
+	node, _ := r.manager.GetNode(key)
 
 	respObj := struct {
 		Node string
@@ -145,6 +149,10 @@ func (r *MemberlistRing) HttpMux() *http.ServeMux {
 	return mux
 }
 
+func (r *MemberlistRing) Manager() *HashRingManager {
+	return r.manager
+}
+
 // Shutdown shuts down the memberlist node and stops the HashRingManager
 func (r *MemberlistRing) Shutdown() {
 	err := r.Memberlist.Leave(2 * time.Second) // 2 second timeout
@@ -157,7 +165,7 @@ func (r *MemberlistRing) Shutdown() {
 		log.Debugf("Failed to shutdown Memberlist: %s", err)
 	}
 
-	r.Manager.Stop()
+	r.manager.Stop()
 
 	r.managerLooper.Quit()
 }

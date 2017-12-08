@@ -1,7 +1,13 @@
+// Ringman implements a consistent hash ring for service sharding,
+// backed either by Hashicorp's Memberlist directly, or by
+// Sidecar service discovery platform. It maintains state about
+// which nodes are available in a cluster and can be queried for
+// a node to match a hash key.
 package ringman
 
 import (
 	"errors"
+	"net/http"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -40,6 +46,12 @@ type RingCommand struct {
 type RingReply struct {
 	Error error
 	Nodes []string
+}
+
+type Ring interface {
+	HttpMux() *http.ServeMux
+	Shutdown()
+	Manager() *HashRingManager
 }
 
 // NewHashRingManager returns a properly configured HashRingManager. It accepts
