@@ -17,7 +17,7 @@ import (
 // will need to have some seeds provided that allow them to find each other.
 type MemberlistRing struct {
 	Memberlist    *memberlist.Memberlist
-	Manager       *HashRingManager
+	manager       *HashRingManager
 	managerLooper director.Looper
 }
 
@@ -87,7 +87,7 @@ func NewMemberlistRing(mlConfig *memberlist.Config, clusterSeeds []string, port 
 
 	return &MemberlistRing{
 		Memberlist:    list,
-		Manager:       ringMgr,
+		manager:       ringMgr,
 		managerLooper: looper,
 	}, nil
 }
@@ -124,7 +124,7 @@ func (r *MemberlistRing) HttpGetNodeHandler(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	node, _ := r.Manager.GetNode(key)
+	node, _ := r.manager.GetNode(key)
 
 	respObj := struct {
 		Node string
@@ -149,6 +149,10 @@ func (r *MemberlistRing) HttpMux() *http.ServeMux {
 	return mux
 }
 
+func (r *MemberlistRing) Manager() *HashRingManager {
+	return r.manager
+}
+
 // Shutdown shuts down the memberlist node and stops the HashRingManager
 func (r *MemberlistRing) Shutdown() {
 	err := r.Memberlist.Leave(2 * time.Second) // 2 second timeout
@@ -161,7 +165,7 @@ func (r *MemberlistRing) Shutdown() {
 		log.Debugf("Failed to shutdown Memberlist: %s", err)
 	}
 
-	r.Manager.Stop()
+	r.manager.Stop()
 
 	r.managerLooper.Quit()
 }

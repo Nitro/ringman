@@ -24,8 +24,8 @@ const (
 // subscribe to Sidecar events, however, and uses a Sidecar Receiver to
 // process them.
 type SidecarRing struct {
-	Manager       *HashRingManager
 	managerLooper director.Looper
+	manager       *HashRingManager
 	sidecarUrl    string
 	svcName       string
 	svcPort       int64
@@ -43,7 +43,7 @@ func NewSidecarRing(sidecarUrl string, svcName string, svcPort int64) (*SidecarR
 	go ringMgr.Run(looper)
 
 	scRing := &SidecarRing{
-		Manager:       ringMgr,
+		manager:       ringMgr,
 		managerLooper: looper,
 		sidecarUrl:    sidecarUrl,
 		svcName:       svcName,
@@ -88,14 +88,14 @@ func (r *SidecarRing) onUpdate(state *catalog.ServicesState) {
 	// Was it it in the new group and not in the old one? Add it.
 	for name := range newNodes {
 		if _, ok := r.nodes[name]; !ok {
-			r.Manager.AddNode(name)
+			r.manager.AddNode(name)
 		}
 	}
 
 	// In the old group but not in the new one? Remove it.
 	for name := range r.nodes {
 		if _, ok := newNodes[name]; !ok {
-			r.Manager.RemoveNode(name)
+			r.manager.RemoveNode(name)
 		}
 	}
 
@@ -161,7 +161,7 @@ func (r *SidecarRing) HttpGetNodeHandler(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	node, _ := r.Manager.GetNode(key)
+	node, _ := r.manager.GetNode(key)
 
 	respObj := struct {
 		Node string
@@ -189,6 +189,10 @@ func (r *SidecarRing) HttpMux() *http.ServeMux {
 	mux.HandleFunc("/nodes", r.HttpListNodesHandler)
 	mux.HandleFunc("/update", updateHandler)
 	return mux
+}
+
+func (r *SidecarRing) Manager() *HashRingManager {
+	return r.manager
 }
 
 // Shutdown stops the Receiver and the HashringManager

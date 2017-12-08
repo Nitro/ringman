@@ -23,9 +23,9 @@ func Test_NewMemberlistRing(t *testing.T) {
 		ourAddr := mlistRing.Memberlist.LocalNode().Addr.String()
 		Convey("returns a properly configured MemberlistRing", func() {
 			So(mlistRing.Memberlist, ShouldNotBeNil)
-			So(mlistRing.Manager, ShouldNotBeNil)
+			So(mlistRing.manager, ShouldNotBeNil)
 
-			node, err := mlistRing.Manager.GetNode("beowulf")
+			node, err := mlistRing.manager.GetNode("beowulf")
 			So(err, ShouldBeNil)
 			So(node, ShouldEqual, ourAddr+":8000")
 
@@ -41,8 +41,8 @@ func Test_MemberListRingShutdown(t *testing.T) {
 
 		mlistRing.Shutdown()
 
-		So(mlistRing.Manager.Ping(), ShouldBeFalse)
-		So(mlistRing.Manager.cmdChan, ShouldBeNil)
+		So(mlistRing.manager.Ping(), ShouldBeFalse)
+		So(mlistRing.manager.cmdChan, ShouldBeNil)
 	})
 }
 

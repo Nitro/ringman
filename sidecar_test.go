@@ -18,7 +18,7 @@ func Test_NewSidecarRing(t *testing.T) {
 		ring, _ := NewSidecarRing("", "some-svc", 9999)
 
 		Convey("Returns a properly configured struct", func() {
-			So(ring.Manager, ShouldNotBeNil)
+			So(ring.manager, ShouldNotBeNil)
 			So(ring.managerLooper, ShouldNotBeNil)
 			So(ring.svcName, ShouldEqual, "some-svc")
 			So(ring.svcPort, ShouldEqual, 9999)
@@ -101,7 +101,7 @@ func Test_onUpdate(t *testing.T) {
 			ring.onUpdate(state)
 			So(len(ring.nodes), ShouldEqual, 1)
 
-			node, err := ring.Manager.GetNode("anything")
+			node, err := ring.manager.GetNode("anything")
 			So(err, ShouldBeNil)
 			So(node, ShouldEqual, "127.0.0.1:23423")
 		})
@@ -122,7 +122,7 @@ func Test_onUpdate(t *testing.T) {
 			ring.onUpdate(catalog.NewServicesState())
 			So(len(ring.nodes), ShouldEqual, 0)
 
-			node, err := ring.Manager.GetNode("anything")
+			node, err := ring.manager.GetNode("anything")
 			So(err.Error(), ShouldContainSubstring, "No nodes in ring")
 			So(node, ShouldEqual, "")
 		})
