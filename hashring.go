@@ -1,3 +1,8 @@
+// Ringman implements a consistent hash ring for service sharding,
+// backed either by Hashicorp's Memberlist directly, or by
+// Sidecar service discovery platform. It maintains state about
+// which nodes are available in a cluster and can be queried for
+// a node to match a hash key.
 package ringman
 
 import (
