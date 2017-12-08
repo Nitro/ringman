@@ -127,6 +127,28 @@ func Test_onUpdate(t *testing.T) {
 			So(node, ShouldEqual, "")
 		})
 
+		Convey("does not include hosts that are not ALIVE", func() {
+			ring.onUpdate(state)
+			So(len(ring.nodes), ShouldEqual, 1)
+
+			svc2 := service.Service{
+				ID:       "abbaabbaabba",
+				Name:     svcName,
+				Image:    "101deadbeef",
+				Hostname: "some-host",
+				Status:   service.UNHEALTHY,
+				Ports:    []service.Port{{Port: 12345, ServicePort: 9999,  IP: "127.0.0.1"}},
+			}
+			state.AddServiceEntry(svc2)
+
+			ring.onUpdate(state)
+			So(len(ring.nodes), ShouldEqual, 1)
+
+			node, err := ring.manager.GetNode("anything")
+			So(err, ShouldBeNil)
+			So(node, ShouldEqual, "127.0.0.1:23423")
+		})
+
 		Reset(func() {
 			ring.Shutdown()
 		})

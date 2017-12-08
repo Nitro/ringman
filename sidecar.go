@@ -75,7 +75,7 @@ func (r *SidecarRing) onUpdate(state *catalog.ServicesState) {
 	newNodes := make(map[string]struct{}, len(r.nodes)+5) // Likely to be similar length
 
 	state.EachService(func(hostname *string, serviceId *string, svc *service.Service) {
-		if svc.Name == r.svcName {
+		if svc.Name == r.svcName && svc.IsAlive() { // Only get ALIVE nodes...
 			key, err := r.keyForService(svc)
 			if err != nil {
 				log.Error(err)
