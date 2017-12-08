@@ -43,7 +43,7 @@ type RingReply struct {
 	Nodes []string
 }
 
-type RingImplementation interface {
+type Ring interface {
 	HttpMux() *http.ServeMux
 	Shutdown()
 }
