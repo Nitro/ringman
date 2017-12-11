@@ -33,7 +33,8 @@ It also offers an optional queryable web API so you or other services can
 inspect the state of the cluster.
 
 It takes one line of code to set up the cluster, and one line of code to
-query it!
+query it! The cluster currently expects equal weighting for all
+nodes.
 
 Memberlist Ring
 ---------------
