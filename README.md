@@ -48,7 +48,7 @@ if err != nil {
     log.Fatalf("Unble to establish memberlist ring: %s", err)
 }
 
-println(ring.Manager.GetNode("mykey"))
+println(ring.Manager().GetNode("mykey"))
 ```
 
 The following would set up a Memberlist-backed consistent hash ring and serve
@@ -131,6 +131,6 @@ if err != nil {
     log.Fatalf("Unble to establish sidecar ring: %s", err)
 }
 
-println(ring.Manager.GetNode("mykey"))
+println(ring.Manager().GetNode("mykey"))
 ```
 
