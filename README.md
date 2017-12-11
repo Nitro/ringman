@@ -14,6 +14,27 @@ from the ring based on events from Memberlist or Sidecar.
 In addition, the package provides some HTTP handlers and a Mux that can be
 mounted anywhere in your application if you want to expose the hashring.
 
+The Problem This Solves
+-----------------------
+
+If you're building a cluster of nodes and need to distribute data amongst them,
+you have a bunch of choices. One good choice is to build a consistent hash and
+back it with a list of cluster nodes. When distributing work/data/etc you can
+then do a lookup against the hash to identify which node(s) should handle the
+work. But now you need to maintain the list of nodes, and identify when they
+come and go from the cluster, and other details of clustering that don't really
+have much to do with the application you're trying to write.  Sometimes a
+specialized load balancer can solve this problem for you. Sometimes you need to
+write your own mechanism.
+
+This is where ringman comes in. It maintains a consistent hash and the
+clustering mechanism underneath it via one of two different provided backends.
+It also offers an optional queryable web API so you or other services can
+inspect the state of the cluster.
+
+It takes one line of code to set up the cluster, and one line of code to
+query it!
+
 Memberlist Ring
 ---------------
 
@@ -86,13 +107,22 @@ Which returns output like:
 }
 ```
 
+### More About Memberlist
+If you are going to set up the Memberlist ring, it may be helpful to read up on
+[Memberlist](https://github.com/hashicorp/memberlist) and the [SWIM
+paper](https://www.cs.cornell.edu/~asdas/research/dsn02-swim.pdf) that explains
+roughly how the underlying algorithm works.
+
 Sidecar Ring
 ------------
 
-An alternate implementation backed by New Relic/Nitro's [Sidecar](https://github.com/Nitro/sidecar)
-is available as well. It assumes it will be subscribed to incoming Sidecar events on
-the listener port. See the Sidecar [README](https://github.com/Nitro/sidecar) for how
-to set that up. Once that is established, you can do the following:
+An alternate implementation backed by New Relic/Nitro's
+[Sidecar](https://github.com/Nitro/sidecar) is available as well. Underneath
+Sidecar also lies Memberlist, but Sidecar provides a lot of features on top of
+it. This implementation of Ringman assumes it will be subscribed to incoming
+Sidecar events on the listener port. See the Sidecar
+[README](https://github.com/Nitro/sidecar) for how to set that up. Once that is
+established, you can do the following:
 
 ```go
 ring, err := ringman.NewSidecarRing("http://localhost:7777/api/state.json")
