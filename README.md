@@ -43,9 +43,9 @@ If you just want to get information from the ring you can query it in your code
 directly like:
 
 ```go
-ring, err := ringman.NewDefaultMemberlistRing([]string{127.0.0.1}, "8000")
+ring, err := ringman.NewDefaultMemberlistRing([]string{"127.0.0.1"}, "8000")
 if err != nil {
-    log.Fatalf("Unble to establish memberlist ring: %s", err)
+    log.Fatalf("Unable to establish memberlist ring: %s", err)
 }
 
 println(ring.Manager().GetNode("mykey"))
@@ -55,9 +55,9 @@ The following would set up a Memberlist-backed consistent hash ring and serve
 the node information over HTTP:
 
 ```go
-ring, err := ringman.NewDefaultMemberlistRing([]string{127.0.0.1}, "8000")
+ring, err := ringman.NewDefaultMemberlistRing([]string{"127.0.0.1"}, "8000")
 if err != nil {
-    log.Fatalf("Unble to establish memberlist ring: %s", err)
+    log.Fatalf("Unable to establish memberlist ring: %s", err)
 }
 
 http.HandleFunc("/your_stuff", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("OK")) })
@@ -128,7 +128,7 @@ established, you can do the following:
 ```go
 ring, err := ringman.NewSidecarRing("http://localhost:7777/api/state.json")
 if err != nil {
-    log.Fatalf("Unble to establish sidecar ring: %s", err)
+    log.Fatalf("Unable to establish sidecar ring: %s", err)
 }
 
 println(ring.Manager().GetNode("mykey"))
