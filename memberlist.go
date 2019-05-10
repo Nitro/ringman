@@ -21,6 +21,9 @@ type MemberlistRing struct {
 	managerLooper director.Looper
 }
 
+// Ensure MemberlistRing implements Ring interface
+var _ Ring = (*MemberlistRing)(nil)
+
 // NewDefaultMemberlistRing returns a MemberlistRing configured using the
 // DefaultLANConfig from the memberlist documentation. clusterSeeds must be 0 or
 // more hosts to seed the cluster with. Note that the ring will be _running_

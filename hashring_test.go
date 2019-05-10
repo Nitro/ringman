@@ -110,13 +110,3 @@ func Test_Commands(t *testing.T) {
 		})
 	})
 }
-
-func Test_Ring(t *testing.T) {
-	Convey("SidecarRing and MemberlistRing implement Ring", t, func() {
-		var ring Ring
-
-		So(func() { ring = &MemberlistRing{} }, ShouldNotPanic)
-		So(func() { ring = &SidecarRing{} }, ShouldNotPanic)
-	})
-
-}

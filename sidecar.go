@@ -33,6 +33,9 @@ type SidecarRing struct {
 	nodes         map[string]struct{} // Tracking which nodes we already know about
 }
 
+// Ensure SidecarRing implements Ring interface
+var _ Ring = (*SidecarRing)(nil)
+
 // NewSidecarRing returns a properly configured SidecarRing that will filter
 // incoming changes by the service name provided and will only watch the
 // ServicePort number passed in. If the SidecarUrl is not empty string,
